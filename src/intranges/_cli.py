@@ -12,7 +12,7 @@ from typing import NoReturn
 from . import __version__
 from ._compact import compact
 from ._dialect import DIALECTS, Dialect
-from ._errors import RangeError
+from ._errors import RangeBoundsError, RangeError, RangeSizeError
 from ._intranges import IntRanges
 from ._parse import DEFAULT_MAX_SIZE, parse, parse_ranges
 
@@ -63,7 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     _common(sub)
     sub.add_argument("-d", "--delimiter", default="\n", help="output separator (newline)")
     sub.add_argument("--unique", action="store_true", help="sorted, without repeats")
-    sub.add_argument("--max-size", type=int, default=DEFAULT_MAX_SIZE, help="value cap")
+    sub.add_argument("--max-size", type=int, default=DEFAULT_MAX_SIZE, help="value cap; 0 lifts it")
     sub = subs.add_parser("compress", help="turn integers into a canonical range string")
     _common(sub, text=False)
     sub.add_argument("values", nargs="*", help="integers; read from stdin when omitted")
@@ -107,10 +107,11 @@ def _emit(values: Iterable[int], delimiter: str) -> None:
 def _run(args: argparse.Namespace) -> int:
     out = sys.stdout
     if args.command == "expand":
+        cap = args.max_size or None
         if args.unique:
             ranges = _ranges(args)
-            if args.max_size is not None and ranges.count > args.max_size:
-                raise RangeError(f"expansion exceeds max_size={args.max_size}")
+            if cap is not None and ranges.count > cap:
+                raise RangeSizeError(f"expansion exceeds max_size={cap}")
             values: Sequence[int] | IntRanges = ranges
         else:
             values = parse(
@@ -118,15 +119,20 @@ def _run(args: argparse.Namespace) -> int:
                 dialect=_dialect(args),
                 lower=args.lower,
                 upper=args.upper,
-                max_size=args.max_size,
+                max_size=cap,
             )
-        out.write(args.delimiter.join(map(str, values)) + "\n")
+        _emit(values, args.delimiter)
     elif args.command == "compress":
         raw = args.values or [t for t in re.split(r"[\s,]+", sys.stdin.read()) if t]
         try:
             ints = [int(token) for token in raw]
         except ValueError as exc:
             raise ValueError(f"not an integer: {exc}") from None
+        for value in ints:
+            if (args.lower is not None and value < args.lower) or (
+                args.upper is not None and value > args.upper
+            ):
+                raise RangeBoundsError(f"{value} is outside --lower/--upper")
         out.write(compact(ints, dialect=_dialect(args), width=args.width) + "\n")
     elif args.command in ("normalize", "normalise"):
         target = DIALECTS[args.to] if args.to else _dialect(args)

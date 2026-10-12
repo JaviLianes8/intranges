@@ -94,3 +94,10 @@ def test_help_and_version(capsys: pytest.CaptureFixture[str]) -> None:
         main(["--version"])
     assert info.value.code == 0
     assert __version__ in capsys.readouterr().out
+
+
+def test_compress_bounds_and_uncapped_expand(cli: Cli) -> None:
+    code, _, err = cli("compress", "1", "2", "--lower", "5")
+    assert code == 1 and "outside" in err
+    assert cli("compress", "5", "6", "--lower", "5", "--upper", "6")[1] == "5-6\n"
+    assert cli("expand", "1-12", "--max-size", "0", "-d", ",")[1].count(",") == 11
