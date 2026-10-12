@@ -37,3 +37,8 @@ def test_round_trip_through_parse() -> None:
 def test_round_trip_from_string() -> None:
     text = "1-5,8,10-12"
     assert compact(parse(text)) == text
+
+
+def test_compact_accepts_whitespace_in_separators_as_in_0_1_0() -> None:
+    assert compact([1, 2, 5], list_sep=", ") == "1-2, 5"
+    assert compact([1, 2, 3], range_sep=" to ") == "1 to 3"

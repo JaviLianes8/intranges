@@ -4,21 +4,26 @@ build-backend = "hatchling.build"
 
 [project]
 name = "intranges"
-version = "0.1.0"
-description = "Typed two-way conversion between a compact range string and a list of ints"
+version = "0.2.0"
+description = "Typed conversion between range strings like 1-3,5 and ints, with a lazy set type, dialects and a CLI"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Javier Lianes", email = "javier@lianes8studio.com" }]
-keywords = ["ranges", "integers", "parse", "compact", "range-string"]
+keywords = ["ranges", "integers", "parse", "compact", "range-string", "cpulist", "page-ranges", "intervals", "cli"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Typing :: Typed",
+    "Environment :: Console",
+    "Topic :: Utilities",
 ]
 dependencies = []
+
+[project.scripts]
+intranges = "intranges._cli:main"
 
 [project.optional-dependencies]
 dev = ["ruff", "mypy", "pytest", "build", "twine"]
