@@ -51,8 +51,8 @@ class Dialect:
         if len(set(seps)) != len(seps):
             raise ValueError(f"separators must be distinct, got {seps!r}")
         for sep in seps:
-            if any(ch.isdigit() or ch.isspace() for ch in sep):
-                raise ValueError(f"separator {sep!r} must not contain digits or spaces")
+            if any(ch.isdigit() for ch in sep):
+                raise ValueError(f"separator {sep!r} must not contain digits")
         if self.stride == "":
             raise ValueError("stride must be None or a non-empty string")
         if self.groups and self.stride is None:

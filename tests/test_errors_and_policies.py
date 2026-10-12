@@ -143,3 +143,23 @@ def test_count_never_expands() -> None:
     assert count("0-10000000000") == 10_000_000_001
     assert count("1-5,3-9") == 9
     assert count("") == 0
+
+
+def test_unsatisfiable_derived_ranges_are_bounds_errors() -> None:
+    from intranges import CPULIST, HTTP, Dialect
+
+    with pytest.raises(RangeBoundsError):
+        parse_ranges("bytes=10000-", dialect=HTTP, upper=9999)
+    with pytest.raises(RangeBoundsError):
+        parse("15-", upper=10)
+    with pytest.raises(RangeBoundsError):
+        parse_ranges("-5", dialect=HTTP, upper=-1)
+    with pytest.raises(RangeBoundsError):
+        parse("all", dialect=CPULIST, upper=-1)
+    with pytest.raises(RangeBoundsError):
+        parse_ranges("-5", dialect=HTTP, lower=97, upper=99)
+    with pytest.raises(RangeSyntaxError):
+        parse_ranges("-", dialect=HTTP, upper=9)
+    odd = Dialect(negatives=False, suffix=True, last_alias="N")
+    with pytest.raises(RangeSyntaxError):
+        parse("-N", dialect=odd, upper=10)

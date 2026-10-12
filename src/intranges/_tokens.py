@@ -110,6 +110,8 @@ def _read(
     if d.all_alias and token.lower() == d.all_alias.lower():
         if floor is None or upper is None:
             fail(RangeBoundsError, f"{token!r} needs lower and upper bounds")
+        if floor > upper:
+            fail(RangeBoundsError, f"{token!r} is empty: lower {floor} exceeds upper {upper}")
         return Piece(token, offset, floor, upper)
     match = _pattern(d).fullmatch(token)
     if match is None or (match["lo"] is None and match["sep"] is None):
@@ -132,17 +134,21 @@ def _read(
         if not d.suffix or upper is None:
             hint = "needs an upper bound" if d.suffix else "is not allowed"
             fail(RangeSyntaxError, f"suffix range {token!r} {hint}")
-        if int(hi) == 0:
-            fail(RangeSyntaxError, f"suffix range {token!r} selects nothing")
+        if hi is None or not hi.isdigit() or int(hi) == 0:
+            fail(RangeSyntaxError, f"suffix range {token!r} needs a positive length")
         start, end = upper - int(hi) + 1, upper
-        if d.clamp and floor is not None:
-            start = max(start, floor)
+        if d.clamp and d.minimum is not None:
+            start = max(start, d.minimum)
+        if start > end:
+            fail(RangeBoundsError, f"suffix range {token!r} is unsatisfiable")
     elif hi is None:
         if not d.open_end:
             fail(RangeSyntaxError, f"open-ended range {token!r} is not allowed")
         if upper is None:
             fail(RangeBoundsError, f"open-ended range {token!r} needs an upper bound")
         start, end = value(lo), upper
+        if start > end:
+            fail(RangeBoundsError, f"{start} is above the upper bound {upper}")
     else:
         start, end = value(lo), value(hi)
     if end < start:

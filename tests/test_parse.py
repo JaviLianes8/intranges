@@ -62,3 +62,9 @@ def test_parse_rejects_empty_token() -> None:
 def test_parse_rejects_empty_separator() -> None:
     with pytest.raises(ValueError):
         parse("1-2", range_sep="")
+
+
+def test_parse_accepts_whitespace_separators_as_in_0_1_0() -> None:
+    assert parse("1 2 3", list_sep=" ") == [1, 2, 3]
+    assert parse("1\n2-3", list_sep="\n") == [1, 2, 3]
+    assert parse("1 to 3", range_sep=" to ") == [1, 2, 3]

@@ -130,7 +130,6 @@ def test_dialect_registry() -> None:
         {"list_sep": ""},
         {"range_sep": ",", "list_sep": ","},
         {"range_sep": "1"},
-        {"list_sep": " "},
         {"stride": ""},
         {"groups": True},
         {"suffix": True},
