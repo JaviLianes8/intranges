@@ -57,7 +57,8 @@ def compact(
             such as ``"001-010"``.
 
     Raises:
-        RangeBoundsError: A value is negative or below the dialect minimum.
+        RangeBoundsError: A value cannot be written in the dialect (negative where
+            negatives are off, or below the dialect minimum).
         TypeError: A value is not an integer.
 
     >>> compact([6, 5, 1, 3, 2])

@@ -8,6 +8,10 @@ import pytest
 from intranges import CPULIST, IntRanges
 
 
+class Sub(IntRanges):
+    __slots__ = ()
+
+
 def test_builds_from_ints_ranges_and_spans() -> None:
     assert IntRanges([5, 1, 2, 3, 3]).spans == ((1, 3), (5, 5))
     assert IntRanges(range(10, 20)).spans == ((10, 19),)
@@ -42,7 +46,7 @@ def test_membership() -> None:
     assert [v for v in range(15) if v in r] == [1, 2, 3, 10, 11, 12]
     assert "2" not in r
     assert 2.0 not in r
-    assert True not in r
+    assert True in r and False not in r
     assert 0 not in IntRanges()
 
 
@@ -116,3 +120,15 @@ def test_text_forms_pickle_and_copy() -> None:
 
 def test_parse_classmethod_forwards_options() -> None:
     assert IntRanges.parse("0-10:5", dialect=CPULIST).spans == ((0, 0), (5, 5), (10, 10))
+
+
+def test_index_integers_and_subclasses() -> None:
+    class Idx:
+        def __index__(self) -> int:
+            return 2
+
+    r = IntRanges([1, 2])
+    assert Idx() in r
+    with pytest.raises(TypeError):
+        IntRanges.from_spans([(1.7, 3.2)])  # type: ignore[list-item]
+    assert type(pickle.loads(pickle.dumps(Sub([1])))) is Sub

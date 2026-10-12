@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from bisect import bisect_right
 from collections.abc import Iterable, Iterator, Set
+from operator import index
 from typing import Any
 
 from . import _spans as sp
@@ -18,11 +19,8 @@ class IntRanges(Set[int]):
     iteration streams values in ascending order. Set operators (``|``, ``&``, ``-``,
     ``^``, ``<=``, ``<``, ``>=``, ``>``) work span by span when both sides are
     ``IntRanges``; any other iterable of ints is converted first. ``==`` and ``hash``
-    compare ``IntRanges`` with ``IntRanges`` only, so the hash contract holds; compare
-    with a builtin set through ``set(r) == s`` or ``r <= s <= r``.
-
-    ``len()`` works up to ``sys.maxsize`` values (a Python limit); use :attr:`count` for
-    arbitrarily large sets.
+    compare ``IntRanges`` with ``IntRanges`` only, so the hash contract holds. ``in``
+    accepts any ``__index__`` integer. ``len()`` stops at ``sys.maxsize``; use ``count``.
 
     >>> r = IntRanges.parse("1-3,10-12")
     >>> 11 in r, r.count, str(r | IntRanges([4]))
@@ -43,9 +41,10 @@ class IntRanges(Set[int]):
     def from_spans(cls, spans: Iterable[tuple[int, int]]) -> IntRanges:
         """Build from inclusive ``(low, high)`` pairs in any order, overlapping or not.
 
-        Raises :class:`ValueError` when a pair has ``low > high``.
+        Raises :class:`ValueError` when a pair has ``low > high`` and :class:`TypeError`
+        when a bound is not an integer.
         """
-        pairs = [(int(low), int(high)) for low, high in spans]
+        pairs = [(index(low), index(high)) for low, high in spans]
         for low, high in pairs:
             if low > high:
                 raise ValueError(f"span ({low}, {high}) has low greater than high")
@@ -89,7 +88,9 @@ class IntRanges(Set[int]):
         return self._spans[-1][1]
 
     def __contains__(self, value: object) -> bool:
-        if not isinstance(value, int) or isinstance(value, bool):
+        try:
+            value = index(value)  # type: ignore[arg-type]
+        except TypeError:
             return False
         i = bisect_right(self._spans, value, key=lambda span: span[0]) - 1
         return i >= 0 and value <= self._spans[i][1]
@@ -123,7 +124,7 @@ class IntRanges(Set[int]):
         return self.format()
 
     def __reduce__(self) -> tuple[Any, ...]:
-        return (IntRanges.from_spans, (self._spans,))
+        return (type(self).from_spans, (self._spans,))
 
     def format(self, dialect: Dialect = DEFAULT, *, width: int | None = None) -> str:
         """Write the canonical range string; see :func:`compact` for the options."""
