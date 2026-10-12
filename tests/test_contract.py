@@ -3,6 +3,7 @@
 import doctest
 import importlib
 import importlib.resources
+import pickle
 from collections.abc import Callable
 from collections.abc import Set as AbstractSet
 
@@ -23,6 +24,15 @@ def _parse() -> None:
             ir.parse(bad)
     with pytest.raises(ir.RangeSizeError):
         ir.parse("0-99999999999")
+    assert ir.parse("1-3", max_size=None) == [1, 2, 3]
+    with pytest.raises(ir.RangeBoundsError):
+        ir.parse("1-5", lower=2)
+    with pytest.raises(ir.RangeBoundsError):
+        ir.parse("1-5", upper=4)
+    with pytest.raises(ValueError):
+        ir.parse("1", lower=3, upper=2)
+    with pytest.raises(ValueError):
+        ir.parse("1", range_sep="")
 
 
 def _compact() -> None:
@@ -34,6 +44,10 @@ def _compact() -> None:
     assert ir.compact([1, 2, 3, 6], range_sep="..", list_sep=";") == "1..3;6"
     assert ir.compact([1, 2], width=3) == "001-002"
     assert ir.compact([1, 2], dialect=ir.HTTP) == "bytes=1-2"
+    with pytest.raises(TypeError):
+        ir.compact([1.5])  # type: ignore[list-item]
+    with pytest.raises(ir.RangeBoundsError):
+        ir.compact([-1], dialect=ir.CPULIST)
 
 
 def _parse_ranges() -> None:
@@ -67,6 +81,23 @@ def _int_ranges() -> None:
     assert list(r) == [1, 2, 3, 10, 11, 12] and (r.first, r.last) == (1, 12)
     assert str(r | [4]) == "1-4,10-12" and str(r.complement(0, 13)) == "0,4-9,13"
     assert ir.IntRanges.from_spans([(1, 3), (10, 12)]) == r
+    other = ir.IntRanges.parse("2-11")
+    assert str(r & other) == "2-3,10-11" and str(r - other) == "1,12"
+    assert str(r ^ other) == "1,4-9,12" and str({0} | r) == "0-3,10-12"
+    assert str({1, 5} - r) == "5" and str({1, 5} & r) == "1" and str({1, 5} ^ r) == "2-3,5,10-12"
+    assert ir.IntRanges([2]) < r and r > ir.IntRanges([2]) and r >= r and not r < r
+    assert hash(r) == hash(ir.IntRanges(list(r))) and r != frozenset(r)
+    assert pickle.loads(pickle.dumps(r)) == r
+    assert list(reversed(r)) == [12, 11, 10, 3, 2, 1]
+    assert r.format(width=2) == "01-03,10-12" and repr(r) == "IntRanges('1-3,10-12')"
+    assert True in r and "1" not in r and 1.0 not in r
+    for prop in ("first", "last"):
+        with pytest.raises(ValueError):
+            getattr(ir.IntRanges(), prop)
+    with pytest.raises(ValueError):
+        ir.IntRanges.from_spans([(2, 1)])
+    with pytest.raises(ValueError):
+        r.complement(2, 1)
 
 
 def _dialect() -> None:

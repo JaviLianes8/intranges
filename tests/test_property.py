@@ -4,7 +4,17 @@ import random
 
 import pytest
 
-from intranges import CPULIST, SLURM, IntRanges, compact, count, normalize, parse, parse_ranges
+from intranges import (
+    CPULIST,
+    SLURM,
+    IntRanges,
+    RangeError,
+    compact,
+    count,
+    normalize,
+    parse,
+    parse_ranges,
+)
 
 SEEDS = range(40)
 
@@ -103,3 +113,24 @@ def test_kernel_groups_match_model(seed: int) -> None:
         assert parse(text, dialect=CPULIST) == model
         assert count(text, dialect=CPULIST) == len(model)
         assert parse_ranges(text, dialect=CPULIST).last == model[-1]
+
+
+GARBAGE = ["x", "", "1-", "--", "5-1", "1:2", "+1", "1-2-3", "a-b", " ", "1..2"]
+
+
+@pytest.mark.parametrize("seed", SEEDS)
+def test_malformed_input_points_at_the_bad_token(seed: int) -> None:
+    rng = random.Random(seed)
+    for _ in range(25):
+        text, _ = random_text(rng)
+        tokens = text.split(",")
+        bad = rng.choice(GARBAGE)
+        tokens.insert(rng.randint(0, len(tokens)), bad)
+        broken = ",".join(tokens)
+        with pytest.raises(RangeError) as info:
+            parse(broken)
+        err = info.value
+        assert isinstance(err.offset, int) and isinstance(err.token, str)
+        assert err.text == broken
+        assert broken[err.offset :].startswith(err.token)
+        assert err.token == bad.strip()
