@@ -43,7 +43,9 @@ given the stricter floor wins. `lower > upper` is a plain `ValueError`.
 Each preset follows a documented syntax. Anything outside it is rejected.
 
 - `PAGES`: CUPS `-o page-ranges=1-4,7,9-12`. Pages start at 1. CUPS prints pages in
-  ascending order whatever the input order, which matches `parse_ranges`.
+  ascending order whatever the input order, which matches `parse_ranges`. The open
+  forms `-4` and `9-` are not part of this preset; build a `Dialect` with
+  `open_end=True` and pass `upper=` when you need `9-`.
 - `CPULIST`: the Linux kernel cpu list format, `0-3,8-11`, with the kernel's
   `a-b:used/group` form (`100-2000:2/25` is 100, 101, 125, 126, ...), `N` for the last
   CPU and `all`. It also accepts the util-linux `taskset` stride `a-b:N`, which equals
@@ -53,7 +55,8 @@ Each preset follows a documented syntax. Anything outside it is rejected.
   (`001-010`). The `%` throttle suffix is not part of the index set and is rejected.
 - `HTTP`: RFC 9110 byte ranges. The `bytes=` unit is optional on input and written on
   output. `500-` runs to `upper`, `-500` is the last 500 bytes, and ends past `upper` are
-  clamped. A start past `upper` is unsatisfiable and raises. Pass `upper=length - 1`.
+  clamped. A start past `upper` is unsatisfiable and raises `RangeBoundsError`. A user
+  `lower=` is a hard bound, not a clamp target. Pass `upper=length - 1`.
 
 Build your own with `Dialect(...)`; incoherent settings, such as two equal separators
 or suffix ranges together with negatives, raise `ValueError` at construction.
@@ -132,8 +135,9 @@ parse_ranges("bytes=0-99,50-199,-100", dialect=HTTP, upper=9999).spans
 ## Command line
 
 ```
-intranges expand TEXT [-d DELIM] [--unique] [--max-size N]
-intranges compress [VALUES ...] [--width W]       # values from stdin when omitted
+intranges expand TEXT [-d DELIM] [--unique] [--max-size N]   # N=0 lifts the cap
+intranges compress [VALUES ...] [--width W]       # values from stdin when omitted;
+                                                  # --lower/--upper validate them
 intranges normalize TEXT [--to DIALECT] [--width W]
 intranges count TEXT
 intranges contains TEXT VALUE [VALUE ...]         # exit 2 if any value is absent

@@ -35,6 +35,9 @@ All notable changes to this project are documented here. The format follows
 - `parse` refuses to build more than 10,000,000 values unless `max_size` is raised or
   set to `None`, so a string like `0-10000000000` fails fast instead of exhausting
   memory.
+- `compact` now rejects values that are not integers (such as floats) with `TypeError`
+  instead of writing them as text.
+- Separators containing digits raise `ValueError`, since they make tokens ambiguous.
 
 ## [0.1.0]
 
