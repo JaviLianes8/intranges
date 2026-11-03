@@ -1,4 +1,4 @@
-"""Examples taken from the documents each dialect cites."""
+"""Handwritten contracts derived from the documented dialect grammars."""
 
 import pytest
 

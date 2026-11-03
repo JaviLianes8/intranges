@@ -6,23 +6,27 @@ from collections.abc import Iterable
 
 from . import _spans as sp
 from ._dialect import DEFAULT, Dialect
-from ._errors import RangeBoundsError
+from ._errors import RangeBoundsError, RangeSizeError
+from ._validation import limit
 
 
 def _number(value: int, width: int | None) -> str:
+    if abs(value) >= 10**600:
+        raise RangeSizeError("integer exceeds 600 digits")
     return str(value) if width is None else f"{value:0{width}d}"
 
 
 def format_spans(spans: sp.Spans, dialect: Dialect, width: int | None) -> str:
     """Write canonical spans in ``dialect``; ``width`` zero-pads every number."""
-    if width is not None and width < 1:
-        raise ValueError(f"width must be at least 1, got {width}")
+    width = limit(width, "width")
+    if width is not None and not 1 <= width <= 10000:
+        raise ValueError("width must be between 1 and 10000")
     if spans:
         low = spans[0][0]
         if (low < 0 and not dialect.negatives) or (
             dialect.minimum is not None and low < dialect.minimum
         ):
-            raise RangeBoundsError(f"{low} cannot be written in the {dialect.name} dialect")
+            raise RangeBoundsError("value cannot be written in this dialect")
     parts = []
     for low, high in spans:
         text = _number(low, width)

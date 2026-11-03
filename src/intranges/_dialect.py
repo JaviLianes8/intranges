@@ -9,6 +9,10 @@ from dataclasses import dataclass, replace
 class Dialect:
     """The grammar used to read and write a range string.
 
+    >>> from intranges import Dialect, parse
+    >>> parse("1..3;5", dialect=Dialect(range_sep="..", list_sep=";"))
+    [1, 2, 3, 5]
+
     Attributes:
         name: Short label used in messages and by the CLI.
         range_sep: Separator between the two bounds of a range, ``"-"`` in ``"1-3"``.
@@ -43,16 +47,34 @@ class Dialect:
     minimum: int | None = None
 
     def __post_init__(self) -> None:
+        for value in (self.name, self.range_sep, self.list_sep, self.prefix):
+            if not isinstance(value, str):
+                raise TypeError("dialect names and separators must be strings")
+        for optional in (self.stride, self.last_alias, self.all_alias):
+            if optional is not None and not isinstance(optional, str):
+                raise TypeError("stride and aliases must be strings or None")
+        for flag in (
+            self.negatives,
+            self.groups,
+            self.open_end,
+            self.suffix,
+            self.clamp,
+            self.brackets,
+        ):
+            if not isinstance(flag, bool):
+                raise TypeError("dialect flags must be bools")
+        if self.minimum is not None and not isinstance(self.minimum, int):
+            raise TypeError("minimum must be an integer or None")
         if not self.range_sep:
             raise ValueError("range_sep must not be empty")
         if not self.list_sep:
             raise ValueError("list_sep must not be empty")
         seps = [self.range_sep, self.list_sep] + ([self.stride] if self.stride else [])
         if len(set(seps)) != len(seps):
-            raise ValueError(f"separators must be distinct, got {seps!r}")
+            raise ValueError("separators must be distinct")
         for sep in seps:
             if any(ch.isdigit() for ch in sep):
-                raise ValueError(f"separator {sep!r} must not contain digits")
+                raise ValueError("separator must not contain digits")
         if self.stride == "":
             raise ValueError("stride must be None or a non-empty string")
         if self.groups and self.stride is None:
@@ -61,10 +83,14 @@ class Dialect:
             raise ValueError("suffix ranges need negatives=False to stay unambiguous")
         for alias in (self.last_alias, self.all_alias):
             if alias is not None and (not alias.isalpha()):
-                raise ValueError(f"alias {alias!r} must be alphabetic")
+                raise ValueError("alias must be alphabetic")
 
     def with_separators(self, range_sep: str | None, list_sep: str | None) -> Dialect:
-        """Return a copy with the given separators replaced (``None`` keeps the current)."""
+        """Return a copy with the given separators replaced (``None`` keeps the current).
+
+        >>> Dialect().with_separators("..", None).range_sep
+        '..'
+        """
         return replace(
             self,
             range_sep=self.range_sep if range_sep is None else range_sep,

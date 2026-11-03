@@ -87,7 +87,7 @@ def _int_ranges() -> None:
     assert pickle.loads(pickle.dumps(r)) == r
     assert list(reversed(r)) == [12, 11, 10, 3, 2, 1]
     assert r.format(width=2) == "01-03,10-12" and repr(r) == "IntRanges('1-3,10-12')"
-    assert True in r and "1" not in r and 1.0 not in r
+    assert True in r and "1" not in r and 1.0 not in r  # type: ignore[comparison-overlap]
     for prop in ("first", "last"):
         with pytest.raises(ValueError):
             getattr(ir.IntRanges(), prop)

@@ -14,18 +14,43 @@ ROOT = Path(__file__).resolve().parents[1]
 @pytest.fixture(scope="module")
 def installed(tmp_path_factory: pytest.TempPathFactory) -> Path:
     work = tmp_path_factory.mktemp("e2e")
-    wheels = work / "wheels"
-    subprocess.run(
-        [sys.executable, "-m", "pip", "wheel", str(ROOT), "--no-deps", "-q", "-w", str(wheels)],
-        check=True,
-    )
-    (wheel,) = wheels.glob("intranges-*.whl")
+    supplied = os.environ.get("INTRANGES_WHEEL")
+    if supplied:
+        wheel = Path(supplied)
+    else:
+        wheels = work / "wheels"
+        subprocess.run(
+            [sys.executable, "-m", "pip", "wheel", str(ROOT), "--no-deps", "-q", "-w", str(wheels)],
+            check=True,
+            timeout=240,
+        )
+        (wheel,) = wheels.glob("intranges-*.whl")
     env_dir = work / "venv"
     venv.EnvBuilder(with_pip=True).create(env_dir)
     bin_dir = env_dir / ("Scripts" if os.name == "nt" else "bin")
     python = bin_dir / ("python.exe" if os.name == "nt" else "python")
+    if os.environ.get("INTRANGES_PYPI") == "1":
+        subprocess.run(
+            [str(python), "-m", "pip", "install", "intranges==0.2.0", "-q"],
+            check=True,
+            timeout=120,
+        )
+        subprocess.run(
+            [
+                str(python),
+                "-c",
+                "import intranges as i; assert i.__version__ == '0.2.0'; "
+                "assert i.parse('1-3,7') == [1,2,3,7]; "
+                "assert i.IntRanges.parse('0-10000000000').count == 10000000001",
+            ],
+            cwd=work,
+            check=True,
+            timeout=30,
+        )
     subprocess.run(
-        [str(python), "-m", "pip", "install", "-q", "--no-index", str(wheel)], check=True
+        [str(python), "-m", "pip", "install", "-q", "--no-index", str(wheel)],
+        check=True,
+        timeout=120,
     )
     return bin_dir
 
@@ -34,7 +59,14 @@ def script(bin_dir: Path, *args: str, stdin: str = "") -> subprocess.CompletedPr
     exe = bin_dir / ("intranges.exe" if os.name == "nt" else "intranges")
     env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
     return subprocess.run(
-        [str(exe), *args], input=stdin, capture_output=True, text=True, env=env, check=False
+        [str(exe), *args],
+        input=stdin,
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=bin_dir.parent,
+        check=False,
+        timeout=30,
     )
 
 
@@ -69,9 +101,17 @@ def test_installed_script_errors_and_help(installed: Path) -> None:
 
 def test_installed_package_imports_outside_the_tree(installed: Path, tmp_path: Path) -> None:
     python = installed / ("python.exe" if os.name == "nt" else "python")
-    code = "import intranges; print(intranges.__file__); print(intranges.compact([1, 2]))"
+    code = (
+        "import intranges; assert intranges.__version__ == '1.0.0'; "
+        "print(intranges.__file__); print(intranges.compact([1, 2]))"
+    )
     out = subprocess.run(
-        [str(python), "-c", code], capture_output=True, text=True, cwd=tmp_path, check=True
+        [str(python), "-I", "-c", code],
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        check=True,
+        timeout=30,
     )
     location, value = out.stdout.split()
     assert "site-packages" in location and value == "1-2"

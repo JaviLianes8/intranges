@@ -1,0 +1,47 @@
+[
+  {
+    "name": "rfc9110.txt",
+    "url": "https://www.rfc-editor.org/rfc/rfc9110.txt",
+    "fetched": "2026-11-03",
+    "revision": "content pinned by SHA-256",
+    "size": 502941,
+    "sha256": "21c1cdce6ab0e5509b04d84a28000836c7a087cf786efe6f04877ebfff47232a",
+    "licence": "RFC 9110, June 2022; IETF Trust legal provisions"
+  },
+  {
+    "name": "kernel.html",
+    "url": "https://docs.kernel.org/admin-guide/kernel-parameters.html",
+    "fetched": "2026-11-03",
+    "revision": "content pinned by SHA-256",
+    "size": 486631,
+    "sha256": "33672905d3bbee997793bf227317f76e69c895891d9ba9bc6d158b0e5b7d867a",
+    "licence": "Linux documentation, GPL-2.0"
+  },
+  {
+    "name": "slurm.html",
+    "url": "https://slurm.schedmd.com/job_array.html",
+    "fetched": "2026-11-03",
+    "revision": "content pinned by SHA-256",
+    "size": 18649,
+    "sha256": "e44eb5aca44d62c9ebab2316b80e90598226fbba8426ef3447a4c45b1ac9e05b",
+    "licence": "SchedMD documentation, upstream copyright"
+  },
+  {
+    "name": "cups.html",
+    "url": "https://www.cups.org/doc/options.html",
+    "fetched": "2026-11-03",
+    "revision": "content pinned by SHA-256",
+    "size": 16818,
+    "sha256": "72e3f8a2c46fd8a604941df517095661de194f617c3694de856d6443ce6b7931",
+    "licence": "CUPS documentation, Apache-2.0"
+  },
+  {
+    "name": "taskset.txt",
+    "url": "https://raw.githubusercontent.com/util-linux/util-linux/master/schedutils/taskset.1.adoc",
+    "fetched": "2026-11-03",
+    "revision": "content pinned by SHA-256",
+    "size": 6345,
+    "sha256": "932d64756dd673930ce79fd3e4736874676138bb1d88be4e71f44acc7d9caad6",
+    "licence": "util-linux manual, GPL-2.0-or-later"
+  }
+]

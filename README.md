@@ -1,5 +1,7 @@
 # intranges
 
+[![Lianes8 Certified](https://lianes8studio.com/certified/lianes8-certified-badge.svg)](https://lianes8studio.com/certified)
+
 Typed, zero-dependency conversion between range strings like `1-3,5,7-9` and integers,
 with a lazy set type that never expands huge ranges, named dialects for real-world
 syntaxes, typed errors that point at the bad token, and a command-line tool.
@@ -36,7 +38,7 @@ by default (`max_size=`), and it checks that before allocating anything.
 ```python
 from intranges import IntRanges, parse_ranges, count, normalize
 
-r = parse_ranges("0-10000000000,5")  # two spans, not ten billion ints
+r = parse_ranges("0-10000000000,5")  # one merged span, not ten billion ints
 r.count  # 10000000001
 7_000_000_000 in r  # True, binary search
 r.spans  # ((0, 10000000000),)
@@ -83,8 +85,10 @@ representation length minus one.
 
 ### Errors
 
-Every error is a `RangeError`, a `ValueError` subclass, carrying `text`, `token` and
-`offset`:
+Range-string errors are `RangeError` subclasses carrying `text`, `token` and
+`offset`. Invalid options raise `ValueError`; wrong argument types raise `TypeError`.
+Messages omit input values. The explicit `pointer()` diagnostic includes input text
+and should only be displayed when that input is safe to disclose:
 
 ```python
 from intranges import RangeError, parse
@@ -99,7 +103,7 @@ except RangeError as err:
 prints
 
 ```text
-invalid range token 'x-9' for the default dialect at offset 8
+invalid range token at offset 8
 1-3, 5, x-9
         ^^^
 ```
@@ -122,20 +126,26 @@ intranges complement "0-3,8-11" --lower 0 --upper 15   # 4-7,12-15
 ```
 
 Errors go to stderr with exit code 1. Put `--` before a range string that starts with
-`-`. See `intranges --help` and [the guide](docs/GUIDE.md) for everything else.
+`-`. See `intranges --help` and [the guide](https://github.com/JaviLianes8/intranges/blob/main/docs/GUIDE.md) for everything else.
 
 ## Why
 
 Expressing a set of integers as a compact string like `1-5,8,10-12` is common in page
 selectors, CPU affinity, job arrays and config files, but converting it back and forth
-usually ends up reimplemented in each project. `intspan` covers the idea with a
-set-like class, yet it is untyped (it ships no `py.typed`) and expands its ranges in
-memory. `intranges` is strictly typed, keeps ranges as spans, and follows documented
-syntaxes instead of inventing new ones.
+usually ends up reimplemented in each project. Python's built-in `range` is ideal for
+one arithmetic progression, and `set` is ideal when you need general object membership.
+`intranges` adds string parsing, unions of integer intervals, and a console tool.
+Its storage scales with the number of spans; sparse strides still need many spans.
+Equality is intentionally between `IntRanges` values only; convert with `set(r)` when
+comparing with a built-in set. This is a selection grammar, not a complete CUPS, Slurm,
+Linux kernel or HTTP protocol implementation; see the guide for supported subsets.
+
+Python 3.10 or newer is required. See the
+[CHANGELOG](https://github.com/JaviLianes8/intranges/blob/main/CHANGELOG.md) for upgrade notes.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](https://github.com/JaviLianes8/intranges/blob/main/LICENSE).
 
 ## Links
 

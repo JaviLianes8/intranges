@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Iterable
 from operator import index
 
+from ._validation import bounds
+
 Span = tuple[int, int]
 Spans = tuple[Span, ...]
 
@@ -68,8 +70,8 @@ def difference(a: Spans, b: Spans) -> Spans:
 
 
 def complement(a: Spans, lower: int, upper: int) -> Spans:
-    if lower > upper:
-        raise ValueError(f"lower {lower} is greater than upper {upper}")
+    bounds(lower, upper)
+    lower, upper = index(lower), index(upper)
     return difference(((lower, upper),), a)
 
 

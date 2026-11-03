@@ -39,9 +39,9 @@ def test_expand_streams_more_than_one_chunk(cli: Cli) -> None:
 def test_expand_size_guard(cli: Cli) -> None:
     code, out, err = cli("expand", "1-100", "--max-size", "10")
     assert (code, out) == (1, "")
-    assert "max_size=10" in err
+    assert "max_size" in err
     code, _, err = cli("expand", "1-100", "--max-size", "10", "--unique")
-    assert code == 1 and "max_size=10" in err
+    assert code == 1 and "max_size" in err
 
 
 def test_compress_from_args_and_stdin(cli: Cli) -> None:
@@ -74,7 +74,7 @@ def test_custom_separators(cli: Cli) -> None:
 def test_errors_go_to_stderr_with_exit_one(cli: Cli) -> None:
     code, out, err = cli("count", "1,x")
     assert (code, out) == (1, "")
-    assert "invalid range token 'x'" in err and "  ^" in err
+    assert "invalid range token" in err and "offset 2" in err
     code, _, err = cli("count", "1", "--lower", "5", "--upper", "2")
     assert code == 1 and "greater than upper" in err
     with pytest.raises(SystemExit) as info:

@@ -6,6 +6,34 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-03
+
+### Stable
+
+- The 22 exported names, range-selection dialects, inclusive spans, ordering and
+  overlap policies, lazy set algebra, typed errors and six CLI commands are stable.
+- Python 3.10 through 3.14, including free-threaded 3.14, with no runtime dependencies.
+
+### Changed from 0.2.0
+
+- `IntRanges.parse` has explicitly typed keyword options and preserves subclasses.
+  Stored spans cannot be reassigned, deleted or replaced by repeated initialization.
+- Parser, formatting, option and CLI errors omit input values. Diagnostic attributes
+  still retain the full input; explicit `pointer()` output is limited to 160 input
+  characters and 160 carets. CLI errors no longer print this diagnostic.
+- Decimal tokens are limited to 600 digits (`RangeSyntaxError`); formatting larger
+  integers raises `RangeSizeError`. These limits are independent of Python's decimal
+  conversion setting. Padding width is limited to 1 through 10000.
+- Bounds, caps, widths and dialect fields are validated for type; negative caps are
+  rejected even for empty input. Invalid options use `TypeError` or `ValueError`.
+- The parser cache retains at most 128 dialects. Closed CLI output pipes return 1
+  without an interpreter-shutdown traceback. CLI argument errors remain exit 1.
+
+### Documentation and verification
+
+- Runnable API examples, explicit dialect subset limitations, fetched specification
+  provenance, seeded set oracles, wheel upgrade checks and mutation contracts.
+
 ## [0.2.0]
 
 ### Added

@@ -40,7 +40,8 @@ given the stricter floor wins. `lower > upper` is a plain `ValueError`.
 
 ## Dialects
 
-Each preset follows a documented syntax. Anything outside it is rejected.
+Each preset supports a selection syntax inspired by the cited system. These are
+convenient subsets and combinations, not full protocol parsers.
 
 - `PAGES`: CUPS `-o page-ranges=1-4,7,9-12`. Pages start at 1. CUPS prints pages in
   ascending order whatever the input order, which matches `parse_ranges`. The open
@@ -98,8 +99,26 @@ For any finite set of ints, `parse_ranges(compact(values)) == IntRanges(values)`
 
 ## Errors
 
-All errors subclass `RangeError`, which subclasses `ValueError`. Parse errors carry
-`text`, `token` and `offset`, and `err.pointer()` draws a caret line under the token.
+Range-string errors subclass `RangeError` (a `ValueError`). Syntax, descending ranges,
+overlaps, order, bounds and expansion limits have their named subclasses. Invalid
+options, reversed bounds and empty `first`/`last` raise `ValueError`; wrong types raise
+`TypeError`. Parse errors retain `text`, `token` and `offset`. Messages and CLI errors
+omit input values. `err.pointer()` explicitly exposes a window of up to 160 input
+characters and carets: only display it for input that is safe to disclose.
+
+Decimal tokens are limited to 600 digits, independently of Python's integer-string
+limit. Larger tokens raise `RangeSyntaxError`; formatting integers of 601 or more
+digits raises `RangeSizeError`. `width` must be an integer from 1 to 10000. Caps must
+be non-negative integers or `None`; zero permits only empty output. Boolean integer
+arguments retain Python's usual 0/1 semantics. `IntRanges` can store larger integers
+without formatting them. Its stored spans cannot be reassigned or deleted.
+
+The `HTTP` preset describes byte selections, not HTTP field validation. It accepts
+optional units, whitespace and single indexes, rejects empty list members and zero
+suffix lengths, and rejects each unsatisfiable range instead of ignoring it when
+another range is satisfiable. Applications implementing RFC 9110 header processing
+must apply those protocol rules separately. The default grammar accepts Unicode
+decimal digits, and that convenience also applies to the presets.
 
 ## Recipes
 
@@ -117,10 +136,11 @@ Validate a user page selection for a 12-page document:
 ```python
 from intranges import PAGES, RangeError, parse_ranges
 
+user_input = "1-4,7"
 try:
     pages = parse_ranges(user_input, dialect=PAGES, upper=12)
 except RangeError as err:
-    show_error(str(err), err.pointer())
+    print(err)
 ```
 
 Merge byte ranges of a request against a 10,000-byte file:

@@ -15,6 +15,7 @@ from ._dialect import DIALECTS, Dialect
 from ._errors import RangeBoundsError, RangeError, RangeSizeError
 from ._intranges import IntRanges
 from ._parse import DEFAULT_MAX_SIZE, parse, parse_ranges
+from ._validation import decimal
 
 EXAMPLES = """\
 examples:
@@ -36,15 +37,15 @@ exit codes: 0 success, 1 error (message on stderr), 2 a "contains" value is abse
 class _Parser(argparse.ArgumentParser):
     def error(self, message: str) -> NoReturn:
         self.print_usage(sys.stderr)
-        self.exit(1, f"{self.prog}: error: {message}\n")
+        self.exit(1, "intranges: error: invalid arguments (invalid choice or missing value)\n")
 
 
 def _common(sub: argparse.ArgumentParser, text: bool = True) -> None:
     if text:
         sub.add_argument("text", help='range string, or "-" to read it from stdin')
     sub.add_argument("--dialect", choices=sorted(DIALECTS), default="default")
-    sub.add_argument("--lower", type=int, help="smallest allowed value")
-    sub.add_argument("--upper", type=int, help='largest allowed value; end of "5-" and N')
+    sub.add_argument("--lower", type=decimal, help="smallest allowed value")
+    sub.add_argument("--upper", type=decimal, help='largest allowed value; end of "5-" and N')
     sub.add_argument("--range-sep", help="override the range separator")
     sub.add_argument("--list-sep", help="override the list separator")
 
@@ -63,20 +64,22 @@ def build_parser() -> argparse.ArgumentParser:
     _common(sub)
     sub.add_argument("-d", "--delimiter", default="\n", help="output separator (newline)")
     sub.add_argument("--unique", action="store_true", help="sorted, without repeats")
-    sub.add_argument("--max-size", type=int, default=DEFAULT_MAX_SIZE, help="value cap; 0 lifts it")
+    sub.add_argument(
+        "--max-size", type=decimal, default=DEFAULT_MAX_SIZE, help="value cap; 0 lifts it"
+    )
     sub = subs.add_parser("compress", help="turn integers into a canonical range string")
     _common(sub, text=False)
     sub.add_argument("values", nargs="*", help="integers; read from stdin when omitted")
-    sub.add_argument("--width", type=int, help="zero-pad numbers to this width")
+    sub.add_argument("--width", type=decimal, help="zero-pad numbers to this width")
     sub = subs.add_parser("normalize", aliases=["normalise"], help="canonical form")
     _common(sub)
     sub.add_argument("--to", choices=sorted(DIALECTS), help="output dialect")
-    sub.add_argument("--width", type=int, help="zero-pad numbers to this width")
+    sub.add_argument("--width", type=decimal, help="zero-pad numbers to this width")
     sub = subs.add_parser("count", help="number of distinct values")
     _common(sub)
     sub = subs.add_parser("contains", help="test membership; exit 2 if any is absent")
     _common(sub)
-    sub.add_argument("values", nargs="+", type=int, help="integers to test")
+    sub.add_argument("values", nargs="+", type=decimal, help="integers to test")
     sub = subs.add_parser("complement", help="values within --lower..--upper not listed")
     _common(sub)
     return parser
@@ -111,7 +114,7 @@ def _run(args: argparse.Namespace) -> int:
         if args.unique:
             ranges = _ranges(args)
             if cap is not None and ranges.count > cap:
-                raise RangeSizeError(f"expansion exceeds max_size={cap}")
+                raise RangeSizeError("expansion exceeds max_size")
             values: Sequence[int] | IntRanges = ranges
         else:
             values = parse(
@@ -125,14 +128,14 @@ def _run(args: argparse.Namespace) -> int:
     elif args.command == "compress":
         raw = args.values or [t for t in re.split(r"[\s,]+", sys.stdin.read()) if t]
         try:
-            ints = [int(token) for token in raw]
-        except ValueError as exc:
-            raise ValueError(f"not an integer: {exc}") from None
+            ints = [decimal(token) for token in raw]
+        except ValueError:
+            raise ValueError("not an integer or integer exceeds 600 digits") from None
         for value in ints:
             if (args.lower is not None and value < args.lower) or (
                 args.upper is not None and value > args.upper
             ):
-                raise RangeBoundsError(f"{value} is outside --lower/--upper")
+                raise RangeBoundsError("value is outside --lower/--upper")
         out.write(compact(ints, dialect=_dialect(args), width=args.width) + "\n")
     elif args.command in ("normalize", "normalise"):
         target = DIALECTS[args.to] if args.to else _dialect(args)
@@ -157,17 +160,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Run the CLI and return its exit code."""
     args = build_parser().parse_args(argv)
     try:
-        return _run(args)
+        result = _run(args)
+        sys.stdout.flush()
+        return result
     except RangeError as exc:
         print(f"intranges: error: {exc}", file=sys.stderr)
-        if exc.pointer():
-            print(exc.pointer(), file=sys.stderr)
         return 1
     except ValueError as exc:
         print(f"intranges: error: {exc}", file=sys.stderr)
         return 1
     except BrokenPipeError:
-        return 0
+        sys.stdout = None
+        return 1
 
 
 if __name__ == "__main__":  # pragma: no cover

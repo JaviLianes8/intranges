@@ -44,7 +44,7 @@ def test_huge_ranges_stay_lazy() -> None:
 def test_membership() -> None:
     r = IntRanges.parse("1-3,10-12")
     assert [v for v in range(15) if v in r] == [1, 2, 3, 10, 11, 12]
-    assert "2" not in r
+    assert "2" not in r  # type: ignore[comparison-overlap]
     assert 2.0 not in r
     assert True in r and False not in r
     assert 0 not in IntRanges()
@@ -88,7 +88,7 @@ def test_comparisons() -> None:
     assert a >= {1, 10} and a > {1}
     assert a.issubset(range(100)) and a.issuperset([1, 2])
     assert a.isdisjoint([11, 0]) and not a.isdisjoint([10])
-    assert (a.__le__(5), a.__lt__(5), a.__ge__(5), a.__gt__(5)) == (NotImplemented,) * 4
+    assert (a.__le__(5), a.__lt__(5), a.__ge__(5), a.__gt__(5)) == (NotImplemented,) * 4  # type: ignore[operator]
 
 
 def test_equality_and_hash_are_between_intranges() -> None:
@@ -128,7 +128,7 @@ def test_index_integers_and_subclasses() -> None:
             return 2
 
     r = IntRanges([1, 2])
-    assert Idx() in r
+    assert Idx() in r  # type: ignore[comparison-overlap]
     with pytest.raises(TypeError):
         IntRanges.from_spans([(1.7, 3.2)])  # type: ignore[list-item]
     assert type(pickle.loads(pickle.dumps(Sub([1])))) is Sub

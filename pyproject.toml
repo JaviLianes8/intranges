@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "intranges"
-version = "0.2.0"
+version = "1.0.0"
 description = "Typed conversion between range strings like 1-3,5 and ints, with a lazy set type, dialects and a CLI"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -13,9 +13,14 @@ license-files = ["LICENSE"]
 authors = [{ name = "Javier Lianes", email = "javier@lianes8studio.com" }]
 keywords = ["ranges", "integers", "parse", "compact", "range-string", "cpulist", "page-ranges", "intervals", "cli"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
     "Environment :: Console",
     "Topic :: Utilities",
@@ -26,11 +31,11 @@ dependencies = []
 intranges = "intranges._cli:main"
 
 [project.optional-dependencies]
-dev = ["ruff", "mypy", "pytest", "build", "twine"]
+dev = ["ruff", "mypy", "pytest", "pytest-timeout", "build", "twine"]
 
 [project.urls]
 Homepage = "https://lianes8studio.com"
-Repository = "https://github.com/JaviLianes8/intranges"
+Source = "https://github.com/JaviLianes8/intranges"
 Issues = "https://github.com/JaviLianes8/intranges/issues"
 Changelog = "https://github.com/JaviLianes8/intranges/blob/main/CHANGELOG.md"
 LinkedIn = "https://www.linkedin.com/in/jlianes/"
@@ -38,6 +43,9 @@ Funding = "https://buymeacoffee.com/jlianesglrs"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/intranges"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/tests", "/docs", "/README.md", "/CHANGELOG.md", "/LICENSE", "/pyproject.toml", "/scripts/fetch_sources.py"]
 
 [tool.ruff]
 line-length = 100
@@ -54,3 +62,4 @@ strict = true
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-q"
+timeout = 300

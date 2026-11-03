@@ -9,6 +9,7 @@ from ._dialect import DEFAULT, Dialect
 from ._errors import RangeError, RangeOrderError, RangeOverlapError, RangeSizeError
 from ._intranges import IntRanges
 from ._tokens import Piece, scan
+from ._validation import limit
 
 DEFAULT_MAX_SIZE = 10_000_000
 """Default cap on the number of values :func:`parse` will put in a list."""
@@ -57,18 +58,20 @@ def parse(
         RangeSizeError: The expansion would exceed ``max_size``.
         ValueError: The separators are empty or clash, or ``lower > upper``.
 
+    >>> from intranges import CPULIST, parse
     >>> parse("1-3,7")
     [1, 2, 3, 7]
     >>> parse("0-10:3", dialect=CPULIST)
     [0, 3, 6, 9]
     """
+    max_size = limit(max_size, "max_size")
     chosen = dialect.with_separators(range_sep, list_sep)
     pieces = scan(text, chosen, lower, upper)
     total = 0
     for piece in pieces:
         total += piece.size()
         if max_size is not None and total > max_size:
-            raise _fail(RangeSizeError, f"expansion exceeds max_size={max_size}", text, piece)
+            raise _fail(RangeSizeError, "expansion exceeds max_size", text, piece)
     result: list[int] = []
     for piece in pieces:
         for low, high in piece.spans():
@@ -105,17 +108,18 @@ def parse_ranges(
     >>> parse_ranges("5,1-3,2").spans
     ((1, 3), (5, 5))
     """
+    max_spans = limit(max_spans, "max_spans")
     if on_overlap not in ("merge", "reject"):
-        raise ValueError(f"on_overlap must be 'merge' or 'reject', got {on_overlap!r}")
+        raise ValueError("on_overlap must be 'merge' or 'reject'")
     if on_unsorted not in ("allow", "reject"):
-        raise ValueError(f"on_unsorted must be 'allow' or 'reject', got {on_unsorted!r}")
+        raise ValueError("on_unsorted must be 'allow' or 'reject'")
     chosen = dialect.with_separators(range_sep, list_sep)
     pieces = scan(text, chosen, lower, upper)
     total = 0
     for index, piece in enumerate(pieces):
         total += piece.span_count()
         if max_spans is not None and total > max_spans:
-            raise _fail(RangeSizeError, f"input exceeds max_spans={max_spans}", text, piece)
+            raise _fail(RangeSizeError, "input exceeds max_spans", text, piece)
         if on_unsorted == "reject" and index and piece.start < pieces[index - 1].start:
             raise _fail(RangeOrderError, "token starts below the previous token", text, piece)
     tagged = sorted(
